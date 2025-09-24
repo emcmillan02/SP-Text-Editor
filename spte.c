@@ -20,7 +20,7 @@
 /** defines **/
 
 #define CTRL_KEY(k) ((k) & 0x1f)
-#define SPTE_VERSION "0.0.1"
+#define SPTE_VERSION "1.0.0"
 #define TAB_STOP 4
 #define QUIT_CONFIRMATION 3
 
@@ -80,10 +80,13 @@ struct editorConfig{
     int colOff;
     int screenrows;
     int screencols;
+    int rawScreenrows;
+    int rawScreencols;
     int numRows;
     char *filename;
     erow *row;
     int dirty;
+    int linenumIndent;
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;
@@ -729,6 +732,16 @@ void drawRows(struct abuf *ab){
     int y;
     for(y=0; y<E.screenrows; y++){
         int filerow = y + E.rowOff;
+
+        char format[8];
+        char linenum[E.linenumIndent + 1];
+        memset(linenum, ' ', E.linenumIndent);
+        snprintf(format, 5, "%%%dd ", E.linenumIndent - 1);
+        if(filerow < E.numRows){
+            snprintf(linenum, E.linenumIndent + 1, format, filerow + 1);
+        }
+        abAppend(ab, linenum, E.linenumIndent);
+
         if(filerow >= E.numRows){
             if(E.numRows == 0 && y == E.screenrows / 3){
                 char welcome[80];
@@ -816,7 +829,28 @@ void drawMessageBar(struct abuf *ab){
     if(msglen && time(NULL) - E.statusmsg_time < 5) abAppend(ab, E.statusmsg, msglen);
 }
 
+void updateLinenumIndent(){
+    int digit;
+    int numRows = E.numRows;
+
+    if(numRows == 0){
+        digit = 0;
+        E.linenumIndent = 2;
+        return;
+    }
+
+    digit = 1;
+    while (numRows >= 10 ){
+        numRows = numRows / 10;
+        digit++;
+    }
+    E.linenumIndent = digit + 2;
+    
+}
+
 void refreshScreen(){
+    updateLinenumIndent();
+    E.screencols = E.rawScreencols - E.linenumIndent;
     editorScroll();
 
     struct abuf ab = ABUF_INIT;
@@ -829,7 +863,7 @@ void refreshScreen(){
     drawMessageBar(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowOff) + 1, (E.rx - E.colOff) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowOff) + 1, (E.rx - E.colOff) + 1 + E.linenumIndent);
     abAppend(&ab, buf, strlen(buf));
 
     abAppend(&ab, "\x1b[?25h", 6);
@@ -1017,10 +1051,12 @@ void initEditor(){
     E.statusmsg[0] = '\0';
     E.statusmsg_time = 0;
     E.syntax = NULL;
+    E.linenumIndent = 6;
 
 
-    if(getWinSize(&E.screenrows, &E.screencols) == -1) kill("getWinSize");
-    E.screenrows -= 2;
+    if(getWinSize(&E.rawScreenrows, &E.rawScreencols) == -1) kill("getWinSize");
+    E.screenrows = E.rawScreenrows - 2;
+    E.screencols = E.rawScreencols;
 }
 
 int main(int argc, char *argv[]){
