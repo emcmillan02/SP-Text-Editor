@@ -20,7 +20,7 @@
 /** defines **/
 
 #define CTRL_KEY(k) ((k) & 0x1f)
-#define SPTE_VERSION "1.0.0"
+#define SPTE_VERSION "1.0.1"
 #define TAB_STOP 4
 #define QUIT_CONFIRMATION 3
 
@@ -98,7 +98,7 @@ struct editorConfig E;
 /** filetypes **/
 
 char *C_HL_extensions[] = {".c", ".h", ".cpp", NULL };
-char *C_HL_keywords[] = {"switch", "if", "while", "for", "break", "continue", "return", "else", "struct", "union", "typedef", "static", "enum", "class", "case",
+char *C_HL_keywords[] = {"switch", "if", "while", "for", "break", "continue", "return", "else", "#define", "#include", "struct", "union", "typedef", "static", "enum", "class", "case",
                         "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|", "void|", NULL };
 
 struct editorSyntax HLDB[] = {
